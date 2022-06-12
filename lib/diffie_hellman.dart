@@ -3,6 +3,7 @@ import 'package:flutter_sodium/flutter_sodium.dart';
 import 'package:nanodart/nanodart.dart';
 import 'dart:typed_data';
 import 'package:x25519/x25519.dart';
+import 'package:encrypt/encrypt.dart';
 
 Uint8List convertEd25519SecretKeyToCurve25519(Uint8List sk) {
   Uint8List d = new Uint8List(64);
@@ -44,8 +45,7 @@ class DiffieHellman {
     Sodium.init();
   }
 
-  static Uint8List aliceSharedKey(
-      String message, String address, String privateKey) {
+  static Encrypted encrypt(String message, String address, String privateKey) {
     String publicKey = NanoAccounts.extractPublicKey(address);
 
     Uint8List convertedPublicKey = Sodium.cryptoSignEd25519PkToCurve25519(
@@ -54,11 +54,19 @@ class DiffieHellman {
         convertEd25519SecretKeyToCurve25519(NanoHelpers.hexToBytes(privateKey));
 
     var aliceSharedKey = X25519(convertedPrivateKey, convertedPublicKey);
-    return aliceSharedKey;
+
+    final key = Key(aliceSharedKey);
+    final iv = IV.fromLength(16);
+
+    final encrypter = Encrypter(AES(key));
+
+    final encrypted = encrypter.encrypt(message, iv: iv);
+
+    return encrypted;
   }
 
-  static Uint8List bobSharedKey(
-      String message, String address, String privateKey) {
+  static String decrypt(
+      Encrypted encrypted, String address, String privateKey) {
     String publicKey = NanoAccounts.extractPublicKey(address);
 
     Uint8List convertedPublicKey = Sodium.cryptoSignEd25519PkToCurve25519(
@@ -67,6 +75,11 @@ class DiffieHellman {
         convertEd25519SecretKeyToCurve25519(NanoHelpers.hexToBytes(privateKey));
 
     var bobSharedKey = X25519(convertedPrivateKey, convertedPublicKey);
-    return bobSharedKey;
+    final key = Key(bobSharedKey);
+    final encrypter = Encrypter(AES(key));
+    final iv = IV.fromLength(16);
+    final decrypted = encrypter.decrypt(encrypted, iv: iv);
+
+    return decrypted;
   }
 }

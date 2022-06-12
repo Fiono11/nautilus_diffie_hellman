@@ -22,11 +22,11 @@ Future<void> main() async {
   String receiverAddress =
       NanoAccounts.createAccount(NanoAccountType.NANO, receiverPubKey);
 
-  var aliceSharedKey = DiffieHellman.aliceSharedKey(
-      "message", senderAddress, receiverPrivateKey);
-  var bobSharedKey =
-      DiffieHellman.bobSharedKey("message", receiverAddress, senderPrivateKey);
+  var message = "message";
+  var encrypted_message =
+      DiffieHellman.encrypt(message, senderAddress, receiverPrivateKey);
+  var decrypted_message = DiffieHellman.decrypt(
+      encrypted_message, receiverAddress, senderPrivateKey);
 
-  assert(NanoHelpers.byteToHex(aliceSharedKey) ==
-      NanoHelpers.byteToHex(bobSharedKey));
+  assert(message == decrypted_message);
 }
